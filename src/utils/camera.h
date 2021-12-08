@@ -1,5 +1,6 @@
 #pragma once
 #include "vec.h"
+#include <GL/freeglut.h>
 
 class Camera
 {
@@ -34,6 +35,9 @@ public:
     void MoveLeft();
     void MoveUp();
     void MoveDown();
+    void TurnLeft();
+    void TurnRight();
+    void Go(float distance);
     void RotateX(float angle);
     void RotateY(float angle);
     void RotateZ(float angle);

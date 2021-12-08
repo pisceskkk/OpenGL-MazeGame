@@ -13,7 +13,7 @@ void Texture::Load(const char* img_path){
     this->Load();
 }
 void Texture::Load(){
-    FILE* my_log=fopen("log.txt","a");
+    static FILE* my_log=fopen("log.txt","a");
     int width, height, nrChannels;
     unsigned char *data = stbi_load(name, &width, &height, &nrChannels, 0);
     fprintf(my_log, "%s\n", name);

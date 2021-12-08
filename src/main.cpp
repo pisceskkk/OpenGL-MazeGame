@@ -14,13 +14,39 @@
 #include "models/door.h"
 #include "models/wall.h"
 #include "models/star.h"
+#include "game/map.h"
+
+
+void Init();
+void InitGame();
+void InitCamera();
+void InitMap();
+
+void ProcessCamera();
+
+void TurnCameraRight(int value);
+void TurnCameraLeft(int value);
+void MoveCameraForward(int value);
+void MoveCameraBackward(int value);
+
+void ProcessKeys();
+void KeyUpSpecial(int key, int x, int y);
+void keyUp(unsigned char key, int x, int y);
+void KeyboardSpecialKeyInput(int key, int x, int y);
+void KeyboardInput(unsigned char key, int x, int y);
+
+void TimerFunc(int value);
+
+void Reshape(int w, int h);
+static void RenderSence();
+static void Args(int argc, char **argv);
 
 
 GLenum doubleBuffer;
 
 const GLfloat kInitSpeed=1;
-GLfloat elapsed_time = 0;
 int screenW=800, screenH=600;
+
 struct keypress
 {
     bool W = false;
@@ -31,37 +57,48 @@ struct keypress
     bool X = false;
     bool Q = false;
     bool E = false;
+    bool R = false;
+    bool F = false;
     bool UP = false;
     bool DOWN = false;
     bool LEFT = false;
     bool RIGHT = false;
     bool SHIFT = false;
     bool SPACE = false;
-} keysPressed;
+} keysPressed, keysProcessed;
 
-Texture kPebble("./assets/pebble.jpg");
-Texture kBrick("./assets/brick.jpg");
-
-Key test_key(vec3(-5.0, 0.0, 0.0), kXAxis, kGolden);
-Key test_key2(vec3(-10.0, 0.0, 0.0), kXAxis, kBrass);
-Door test_door(kZeroVec3, kXAxis, kBrass);
-Wall test_wall1(vec3(0.0,  10.0, 0.0), kXAxis, &kBrick);
-Wall test_wall2(vec3(0.0, -10.0, 0.0), kXAxis, &kBrick);
-Ground ground(kZeroVec3, kZAxis, &kPebble);
-Star test_star(vec3(5.0, 0.0, 0.0), kXAxis, kSilver);
-
+Map map("./assets/maze1.txt");
 Camera camera;
+struct GameState{
+    float elapsed_time;
+    int key_number;
+}state;
+
+
+void InitGame(){
+    state.elapsed_time = 0;
+    state.key_number = 0;
+}
+
 void InitCamera(){
-    vec3 position = vec3(40.0, 0.0, 15.0);
+    vec3 position = vec3(map.start_pos.x, map.start_pos.y, 15.0);
     vec3 viewDirection = vec3(-1.0, 0.0, 0.0);
     vec3 upVector = vec3(0.0, 0.0, 1.0);
     vec3 rightVector = vec3(0.0, 1.0, 0.0);
     camera = Camera(position, viewDirection, upVector, rightVector, kZeroVec3, kInitSpeed);
 }
 
+void InitMap(){
+    if(map.is_loaded == false){
+        map.Load();
+    }
+    else {
+        map.Init();
+    }
+}
 
 //camera porcessing
-void processCamera()
+void ProcessCamera()
 {
     vec3 viewPoint = camera.position + camera.direction;
     gluLookAt(camera.position.x, camera.position.y, camera.position.z,//eye
@@ -69,78 +106,90 @@ void processCamera()
         camera.up.x, camera.up.y, camera.up.z);
 }
 
-//draw Camera Info on screen
-void CameraInfo()
-{
-    DrawText("Camera Position X : " + std::to_string(camera.position.x), GLUT_BITMAP_HELVETICA_12, vec3{ 1.0, 0.0, 0.0 }, vec2(50, 100));
-    DrawText("Camera Position Y : " + std::to_string(camera.position.y), GLUT_BITMAP_HELVETICA_12, vec3{ 1.0, 1.0, 0.0 }, vec2(50, 125));
-    DrawText("Camera Position Z : " + std::to_string(camera.position.z), GLUT_BITMAP_HELVETICA_12, vec3{ 0.0, 1.0, 1.0 }, vec2(50, 150));
-    DrawText("Rotation X : " + std::to_string(camera.rotation.x), GLUT_BITMAP_HELVETICA_12, vec3{ 1.0, 1.0, 1.0 }, vec2(50, 200));
-    DrawText("Rotation Y : " + std::to_string(camera.rotation.y), GLUT_BITMAP_HELVETICA_12, vec3{ 1.0, 1.0, 1.0 }, vec2(50, 225));
-    DrawText("Rotation Z : " + std::to_string(camera.rotation.z), GLUT_BITMAP_HELVETICA_12, vec3{ 1.0, 1.0, 1.0 }, vec2(50, 250));
-    glutSetWindowTitle((std::to_string(camera.direction.x) + std::to_string(camera.direction.y) + std::to_string(camera.direction.z) +
-                        std::to_string(camera.right.x) + std::to_string(camera.right.y) + std::to_string(camera.right.z) +
-                        std::to_string(camera.up.x) + std::to_string(camera.up.y) + std::to_string(camera.up.z)
-                        ).c_str());
+void TurnCameraRight(int value){
+    if(value <= 0)return;
+    camera.RotateY(-1);
+    glutTimerFunc(1, TurnCameraRight, value-1);
+}
+void TurnCameraLeft(int value){
+    if(value <= 0)return;
+    camera.RotateY(1);
+    glutTimerFunc(1, TurnCameraLeft, value-1);
+}
+
+void MoveCameraForward(int value){
+    if(value <= 0) return;
+    camera.Go(0.2);
+    glutTimerFunc(1, MoveCameraForward, value-1);
+}
+void MoveCameraBackward(int value){
+    if(value <= 0)return;
+    camera.Go(-0.2);
+    glutTimerFunc(1, MoveCameraBackward, value-1);
 }
 
 //processing key board inputs
-void processKeys()
+void ProcessKeys()
 {
     vec3 prePos = camera.position;
+    vec3 nxt_pos;
     if (keysPressed.SPACE){
-        InitCamera();
         return;
     }
-    if (keysPressed.W)
+    if (keysPressed.W && keysProcessed.W == false)
     {
-        camera.MoveForward();
+        keysProcessed.W = true;
+        nxt_pos = camera.position + camera.direction * 10;
+        if(map.Check(nxt_pos.x, nxt_pos.y, state.elapsed_time)){
+            MoveCameraForward(50);
+        }
     }
-    if (keysPressed.S)
+    if (keysPressed.S && keysProcessed.S == false)
     {
-        camera.MoveBackward();
+        keysProcessed.S = true;
+        nxt_pos = camera.position + camera.direction * (-10);
+        if(map.Check(nxt_pos.x, nxt_pos.y, state.elapsed_time)){
+            MoveCameraBackward(50);
+        }
     }
-    if (keysPressed.A)
+    if (keysPressed.A && keysProcessed.A == false)
     {
-        camera.MoveLeft();
+        keysProcessed.A = true;
+        TurnCameraLeft(90);
     }
-    if (keysPressed.D)
+    if (keysPressed.D && keysProcessed.D == false)
     {
-        camera.MoveRight();
+        keysProcessed.D = true;
+        TurnCameraRight(90);
     }
-    if (keysPressed.Z)
-    {
-        camera.RotateY(1.0);
+    if (keysPressed.R && keysProcessed.R == false){
+        keysProcessed.R = true;
+        Init();
     }
-    if (keysPressed.X)
-    {
-        camera.RotateY(-1.0);
+    if (keysPressed.E && keysProcessed.E == false){
+        keysProcessed.E = true;
+        nxt_pos = camera.position + camera.direction * 10;
+        char nxt_state = map.get_state(nxt_pos.x, nxt_pos.y);
+        if(nxt_state == '-' || nxt_state == '|'){
+            if(state.key_number > 0){
+                state.key_number--;
+                map.OpenDoor(nxt_pos.x, nxt_pos.y, state.elapsed_time);
+            }
+            else {
+
+            }
+        }
     }
-    if (keysPressed.UP)
-    {
-        camera.MoveUp();
-    }
-    if (keysPressed.DOWN)
-    {
-        camera.MoveDown();
-    }
-    if (keysPressed.LEFT)
-    {
-        camera.RotateZ(1.0);
-    }
-    if (keysPressed.RIGHT)
-    {
-        camera.RotateZ(-1.0);
-    }
-    if (keysPressed.Q) {
-        camera.RotateX(1.0);
-    }
-    if (keysPressed.E) {
-        camera.RotateX(-1.0);
+    if (keysPressed.F && keysProcessed.F == false){
+        keysProcessed.F = true;
+        nxt_pos = camera.position;
+        if(map.get_state(nxt_pos.x, nxt_pos.y) == 'k'){
+            state.key_number += map.FetchKey(nxt_pos.x, nxt_pos.y);
+        }
     }
 }
 
-void keyUpSpecial(int key, int x, int y)
+void KeyUpSpecial(int key, int x, int y)
 {
     switch (key) {
     case GLUT_KEY_UP: keysPressed.UP = false; break;
@@ -156,35 +205,52 @@ void keyUp(unsigned char key, int x, int y)
     switch (key) {
     case 'w': case 'W':
         keysPressed.W = false;
+        keysProcessed.W = false;
         break;
     case 's': case 'S':
         keysPressed.S = false;
+        keysProcessed.S = false;
         break;
     case 'a': case 'A':
         keysPressed.A = false;
+        keysProcessed.A = false;
         break;
     case 'd': case 'D':
         keysPressed.D = false;
+        keysProcessed.D = false;
         break;
     case 'z': case 'Z':
         keysPressed.Z = false;
+        keysProcessed.Z = false;
         break;
     case 'x': case 'X':
         keysPressed.X = false;
+        keysProcessed.X = false;
         break;
     case 'q': case 'Q':
         keysPressed.Q = false;
+        keysProcessed.Q = false;
         break;
     case 'e': case 'E':
         keysPressed.E = false;
+        keysProcessed.E = false;
+        break;
+    case 'f': case 'F':
+        keysPressed.F = false;
+        keysProcessed.F = false;
+        break;
+    case 'r': case 'R':
+        keysPressed.R = false;
+        keysProcessed.R = false;
         break;
     case ' ':
         keysPressed.SPACE = false;
+        keysProcessed.SPACE = false;
         break;
     }
 }
 
-void keyboardSpecialKeyInput(int key, int x, int y)
+void KeyboardSpecialKeyInput(int key, int x, int y)
 {
     switch (key) {
     case GLUT_KEY_UP: keysPressed.UP = true; break;
@@ -195,7 +261,7 @@ void keyboardSpecialKeyInput(int key, int x, int y)
     }
 }
 
-void keyboardInput(unsigned char key, int x, int y)
+void KeyboardInput(unsigned char key, int x, int y)
 {
     switch (key) {
     case 'w': case 'W':
@@ -222,8 +288,15 @@ void keyboardInput(unsigned char key, int x, int y)
     case 'e': case 'E':
         keysPressed.E = true;
         break;
+    case 'f': case 'F':
+        keysPressed.F = true;
+        break;
+    case 'r': case 'R':
+        keysPressed.R = true;
+        break;
     case ' ':
         keysPressed.SPACE = true;
+        InitCamera();
         break;
     case 27: // ECS
         exit(0);
@@ -234,15 +307,14 @@ void keyboardInput(unsigned char key, int x, int y)
 
 void TimerFunc(int value)
 {
-    //timer function
-	elapsed_time += 0.25;
-    processKeys();
+	state.elapsed_time += 0.25;
+    ProcessKeys();
     glutSwapBuffers();
     glutPostRedisplay();
     glutTimerFunc(25, TimerFunc, 1);
 }
 
-void reshape(int w, int h)
+void Reshape(int w, int h)
 {
     GLfloat fAspect;
 
@@ -262,13 +334,12 @@ void reshape(int w, int h)
         0.00, 1.00, 0.00);
 }
 
-static void RenderSence(void)
+static void RenderSence()
 {
     glClear(GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); 
     glEnable(GL_DEPTH_TEST);     
     glLoadIdentity();
-    processCamera();
-    // CameraInfo();
+    ProcessCamera();
 
     {
         GLfloat sun_light_position[][4] = {{100.0f, 100.0f, 100.0f, 1.0f},{-100.0f, -100.0f, 100.0f, 1.0f}};
@@ -288,48 +359,31 @@ static void RenderSence(void)
         glEnable(GL_LIGHTING);     
     } 
 
-    test_key.Draw(elapsed_time*10);
-    test_key2.Draw(elapsed_time*10);
-    test_star.Draw(elapsed_time*10);
-    test_door.Draw(elapsed_time);
-    test_wall1.Draw();
-    test_wall2.Draw();
-    ground.Draw(10, 10);
+   map.Draw(state.elapsed_time);
 
     if (doubleBuffer) {
-    glutSwapBuffers();
+        glutSwapBuffers();
     } else {
-    glFlush();
+        glFlush();
     }
 }
 
 
 static void Args(int argc, char **argv)
 {
-    GLint i;
-
     doubleBuffer = GL_FALSE;
-
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-sb") == 0) {
-            doubleBuffer = GL_FALSE;
-        } else if (strcmp(argv[i], "-db") == 0) {
-            doubleBuffer = GL_TRUE;
-        }
-    }
 }
 
 void Init(){
     glClearColor(0.3, 0.3, 0.3, 0.0);
-    InitCamera();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    kPebble.Load();
-    kBrick.Load();
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-    test_door.open(5, 2);
+    InitMap();
+    InitCamera();
+    InitGame();
 }
 
 int main(int argc, char **argv)
@@ -347,11 +401,11 @@ int main(int argc, char **argv)
 
     Init();
 
-    glutSpecialFunc(keyboardSpecialKeyInput);
-    glutSpecialUpFunc(keyUpSpecial);
-    glutKeyboardFunc(keyboardInput);
+    glutSpecialFunc(KeyboardSpecialKeyInput);
+    glutSpecialUpFunc(KeyUpSpecial);
+    glutKeyboardFunc(KeyboardInput);
     glutKeyboardUpFunc(keyUp);
-    glutReshapeFunc(reshape);
+    glutReshapeFunc(Reshape);
     glutDisplayFunc(RenderSence);
 	glutTimerFunc(25, TimerFunc, 1);
     glutMainLoop();

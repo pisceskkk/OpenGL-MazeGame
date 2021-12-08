@@ -51,6 +51,21 @@ void Camera::MoveDown()
     this->position = this->position + (this->up * (-this->speed));
 };
 
+void Camera::TurnRight(){
+    this->direction = this->right;
+    this->right = this->direction ^ this->up;
+}
+
+
+void Camera::TurnLeft(){
+    this->direction = this->right * (-1);
+    this->right = this->direction ^ this->up;
+}
+
+void Camera::Go(float distance){
+    this->position = this->position + this->direction * distance;
+}
+
 void Camera::RotateX(float angle)
 {
 

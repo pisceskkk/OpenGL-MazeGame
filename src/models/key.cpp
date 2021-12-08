@@ -61,6 +61,7 @@ void Key::Draw(GLfloat angle){
         material.Activate();
     if(use_texture)
         texture->Activate();
+    
     DrawKey();
     glPopMatrix();
 

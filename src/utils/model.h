@@ -23,5 +23,21 @@ public:
         position(p), normal(n.normalize()), texture(t), use_texture(1) {}
     Model(vec3 p, vec3 n, Material m, Texture* t):
         position(p), normal(n.normalize()),material(m), use_material(1), texture(t), use_texture(1) {}
+    Model* Init(vec3 p, vec3 n, Material m){
+        position = p;
+        normal = n;
+        material = m;
+        use_material = 1;
+        use_texture = 0;
+        return this;
+    }
+    Model* Init(vec3 p, vec3 n, Texture* t){
+        position = p;
+        normal = n;
+        use_material = 0;
+        texture = t;
+        use_texture = 1;
+        return this;
+    }
     void Draw();
 };

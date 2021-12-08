@@ -20,8 +20,8 @@ void Wall::Draw(){
         glEnable(GL_TEXTURE_2D);
         texture->Activate();
     }
-    glScalef(4,10,23);
-    glTranslatef(0.0, 0.5, 0.5);
+    glScalef(10,10,23);
+    glTranslatef(0, 0, 0.5);
     DrawUnitCube(1);
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();

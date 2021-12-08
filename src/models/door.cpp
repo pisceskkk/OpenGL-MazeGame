@@ -12,13 +12,13 @@ static void DrawDoor(Material material){
     // main
     glPushMatrix();
     glScalef(3,10,20);
-    glTranslatef(0.0, 0.5, 0.5);
+    glTranslatef(0.0, 0.0, 0.5);
     glutSolidCube(1);
     glPopMatrix();
 
-    // handle
+    // front handle
     glPushMatrix();
-    glTranslatef(1.5,8.0, 8.0);
+    glTranslatef(1.5,3.0, 8.0);
     glRotatef(90,0, 1, 0);
     glutSolidCone(0.25, 0.5, 100, 100);
         glPushMatrix();
@@ -27,10 +27,22 @@ static void DrawDoor(Material material){
         glutSolidSphere(0.5, 100, 100);
         glPopMatrix();
     glPopMatrix();
-
-    // key hole
+    // back handle
     glPushMatrix();
-    glTranslatef(1.55, 8.3, 7.0);
+    glTranslatef(-1.5,3.0, 8.0);
+    glRotatef(-90,0, 1, 0);
+    glutSolidCone(0.25, 0.5, 100, 100);
+        glPushMatrix();
+        glTranslatef(0.0, 0.0, 0.5);
+        glScalef(1.0, 1.0, 0.5);
+        glutSolidSphere(0.5, 100, 100);
+        glPopMatrix();
+    glPopMatrix();
+
+
+    // front key hole
+    glPushMatrix();
+    glTranslatef(1.55, 3.3, 7.0);
     glEnable(GL_COLOR_MATERIAL);
     DrawCircle3D(kZeroVec3, kXAxis, 0.25, kZeroVec3, 100);
     glBegin(GL_TRIANGLES);
@@ -40,20 +52,18 @@ static void DrawDoor(Material material){
     glEnd();
     glDisable(GL_COLOR_MATERIAL);
     glPopMatrix();
-    material.Activate();
-
-    // decoration
-    /* 
+    // back key hole
     glPushMatrix();
-    glTranslatef(0.5, 5.0, 15.0);
-    glutSolidSphere(2, 100, 100);
-        glPushMatrix();
-        glTranslatef(1.5, 0.0, -1.0);
-        glRotatef(90, 0.0, 1.0, 0.0);
-        glutSolidTorus(0.2, 1.0, 100, 100);
-        glPopMatrix();
+    glTranslatef(-1.55, 3.3, 7.0);
+    glEnable(GL_COLOR_MATERIAL);
+    DrawCircle3D(kZeroVec3, kXAxis, 0.25, kZeroVec3, 100);
+    glBegin(GL_TRIANGLES);
+    glVertex3f(0.0,  0.0,  0.0);
+    glVertex3f(0.0, -0.2, -0.75);
+    glVertex3f(0.0,  0.2, -0.75);
+    glEnd();
+    glDisable(GL_COLOR_MATERIAL);
     glPopMatrix();
-     */
 
     glPopMatrix();
 }
@@ -79,14 +89,9 @@ void Door::Draw(){
 
 void Door::Draw(float time){
     glPushMatrix();
-    GLfloat distance = 0;
-    if(this->is_open == 1){
-        distance = max(0,min(7.5, (time-this->start_time)*speed));
-    }
-    glTranslatef(position.x, position.y-distance, position.z);
-
 	vec3 origin_axis = kXAxis;
     vec3 rot_axis = (normal^origin_axis).normalize();
+    glTranslatef(position.x, position.y, position.z);
     if (rot_axis.length() > EPS)
         glRotatef(180*acos(normal*origin_axis)/PI, rot_axis.x, rot_axis.y, rot_axis.z);
     else if (normal*origin_axis < -EPS) 
@@ -96,12 +101,24 @@ void Door::Draw(float time){
         material.Activate();
     if(use_texture)
         texture->Activate();
+
+    GLfloat distance = 0;
+    if(this->is_open == 1){
+        distance = max(0,min(7.5, (time-this->start_time)*speed));
+    }
+    glTranslatef(0, -distance, 0);
+
     DrawDoor(this->material);
     glPopMatrix();
 }
 
-void Door::open(GLfloat start_time, GLfloat speed){
+void Door::Open(GLfloat start_time, GLfloat speed){
     this->speed = speed;
     this->start_time = start_time;
     this->is_open = 1;
+    this->end_time = start_time + 7.5/speed;
+}
+
+bool Door::Check(GLfloat time){
+    return this->is_open && time > this->end_time;
 }

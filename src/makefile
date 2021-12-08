@@ -2,7 +2,7 @@ OBJ_DIR = ../obj
 CFLAGS=-Wno-narrowing -g -DDEBUG
 
 all: main.o
-	make -C utils && make -C models
+	make -C utils && make -C models && make -C game
 	@echo [INFO] src done!
 
 main.o : main.cpp
