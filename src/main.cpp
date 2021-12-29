@@ -71,7 +71,7 @@ struct keypress
     bool SPACE = false;
 } keysPressed, keysProcessed;
 
-Map map("./assets/maze1.txt");
+Map map("./assets/maze.txt");
 Camera camera;
 struct GameState{
     float elapsed_time;
