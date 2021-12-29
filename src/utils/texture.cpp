@@ -13,7 +13,7 @@ void Texture::Load(const char* img_path){
     this->Load();
 }
 void Texture::Load(){
-    static FILE* my_log=fopen("log.txt","a");
+    static FILE* my_log=fopen("./bin/log.txt","a");
     int width, height, nrChannels;
     unsigned char *data = stbi_load(name, &width, &height, &nrChannels, 0);
     fprintf(my_log, "%s\n", name);
@@ -26,7 +26,10 @@ void Texture::Load(){
         glBindTexture(GL_TEXTURE_2D, id);
         // 为当前绑定的纹理对象设置环绕、过滤方式
         // 加载并生成纹理
-        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+        if(nrChannels == 3)
+            gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else if(nrChannels == 4)
+            gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
         // glGenerateMipmap(GL_TEXTURE_2D);
     }
     else

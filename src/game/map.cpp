@@ -1,6 +1,6 @@
 #include "map.h"
 
-static FILE* my_log = fopen("./bin/log", "a");
+static FILE* my_log = fopen("./bin/log.txt", "a");
 
 void Map::Load(const char* file_dir){
     name = (char *)malloc((strlen(file_dir) + 1) * sizeof(char));

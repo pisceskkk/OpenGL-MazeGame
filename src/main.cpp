@@ -14,6 +14,8 @@
 #include "models/door.h"
 #include "models/wall.h"
 #include "models/star.h"
+#include "models/logo.h"
+#include "models/button.h"
 #include "game/map.h"
 
 
@@ -45,10 +47,11 @@ static void Args(int argc, char **argv);
 GLenum doubleBuffer;
 
 const GLfloat kInitSpeed=1;
-int screenW=800, screenH=600;
+int screenW=800, screenH=600, screenD=1;
 
 struct keypress
 {
+    bool enabled=false;
     bool W = false;
     bool S = false;
     bool A = false;
@@ -72,12 +75,32 @@ Camera camera;
 struct GameState{
     float elapsed_time;
     int key_number;
+    bool is_loaded=false;
+    bool win=false;
+    Logo loading_logo=Logo("./assets/loading.png"),win_logo=Logo("./assets/win.png");
+    Logo exit_log=Logo("./assets/button_exit.png"),exit_down_logo=Logo("./assets/button_exit_down.png");
+    Logo reload_log=Logo("./assets/button_reload.png"),reload_down_logo=Logo("./assets/button_reload_down.png");
+    void load(){
+        loading_logo.Load();
+        win_logo.Load();
+        exit_log.Load();
+        exit_down_logo.Load();
+        reload_log.Load();
+        reload_down_logo.Load();
+        is_loaded = true;
+    }
 }state;
 
 
 void InitGame(){
     state.elapsed_time = 0;
     state.key_number = 0;
+    state.win=false;
+    keysPressed.enabled = true;
+    keysProcessed.enabled = false;
+    if(state.is_loaded == false){
+        state.load();
+    }
 }
 
 void InitCamera(){
@@ -133,9 +156,19 @@ void ProcessKeys()
 {
     vec3 prePos = camera.position;
     vec3 nxt_pos;
+    // functional keys
     if (keysPressed.SPACE){
         return;
     }
+    if (keysPressed.R && keysProcessed.R == false){
+        keysProcessed.R = true;
+        Init();
+    }
+
+    if(keysProcessed.enabled == false)
+        return;
+
+    // gaming keys
     if (keysPressed.W && keysProcessed.W == false)
     {
         keysProcessed.W = true;
@@ -162,10 +195,6 @@ void ProcessKeys()
         keysProcessed.D = true;
         TurnCameraRight(90);
     }
-    if (keysPressed.R && keysProcessed.R == false){
-        keysProcessed.R = true;
-        Init();
-    }
     if (keysPressed.E && keysProcessed.E == false){
         keysProcessed.E = true;
         nxt_pos = camera.position + camera.direction * 10;
@@ -183,8 +212,12 @@ void ProcessKeys()
     if (keysPressed.F && keysProcessed.F == false){
         keysProcessed.F = true;
         nxt_pos = camera.position;
-        if(map.get_state(nxt_pos.x, nxt_pos.y) == 'k'){
+        char map_state = map.get_state(nxt_pos.x, nxt_pos.y);
+        if(map_state == 'k'){
             state.key_number += map.FetchKey(nxt_pos.x, nxt_pos.y);
+        }
+        else if (map_state == 'e'){
+            state.win = true;
         }
     }
 }
@@ -307,7 +340,7 @@ void KeyboardInput(unsigned char key, int x, int y)
 
 void TimerFunc(int value)
 {
-	state.elapsed_time += 0.25;
+    state.elapsed_time += 0.25;
     ProcessKeys();
     glutSwapBuffers();
     glutPostRedisplay();
@@ -338,6 +371,34 @@ static void RenderSence()
 {
     glClear(GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); 
     glEnable(GL_DEPTH_TEST);     
+
+    // Draw on screen
+    glMatrixMode(GL_PROJECTION);
+    {
+        glLoadIdentity();
+        glOrtho(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        // Loading
+        if(state.elapsed_time < 5){
+            keysProcessed.enabled = false;
+            state.loading_logo.Draw(kZeroVec3, vec2(3,1.2));
+        }
+        else {
+            keysProcessed.enabled = true;
+        }
+        if(state.win){
+            state.win_logo.Draw(kZeroVec3, vec2(3.6,1.4));
+            keysProcessed.enabled = false;
+        }
+    }
+
+    // Draw in space
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(55.0f, screenW/screenH, 1.0, 100000.0);
+
+    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     ProcessCamera();
 
@@ -359,7 +420,7 @@ static void RenderSence()
         glEnable(GL_LIGHTING);     
     } 
 
-   map.Draw(state.elapsed_time);
+    map.Draw(state.elapsed_time);
 
     if (doubleBuffer) {
         glutSwapBuffers();
@@ -407,6 +468,6 @@ int main(int argc, char **argv)
     glutKeyboardUpFunc(keyUp);
     glutReshapeFunc(Reshape);
     glutDisplayFunc(RenderSence);
-	glutTimerFunc(25, TimerFunc, 1);
+    glutTimerFunc(25, TimerFunc, 1);
     glutMainLoop();
 }

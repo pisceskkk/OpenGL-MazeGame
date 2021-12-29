@@ -7,6 +7,7 @@ endif
 SRC_DIR=src
 OBJ_DIR=obj
 TARGET_DIR=bin
+LOG=log.txt
 
 CFLAGS=-Wno-narrowing -g -DDEBUG
 
@@ -18,6 +19,7 @@ all:
 clean:
 	rm $(OBJ_DIR)/*.o
 	rm $(TARGET_DIR)/$(EXECUTABLE)
+	rm $(TARGET_DIR)/$(LOG)
 
 run:
 	./$(TARGET_DIR)/$(EXECUTABLE)
