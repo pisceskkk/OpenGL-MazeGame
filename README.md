@@ -3,6 +3,12 @@
 A ~~crude~~ maze game using opengl/freeglut(including camera contrallor with keyboard and mouse, basic models, materials, textures and so on) for CG course.
 
 ![GitHub branch checks state](https://img.shields.io/github/checks-status/pisceskkk/OpenGL-MazeGame/master)
+![GitHub](https://img.shields.io/github/license/pisceskkk/OpenGL-MazeGame)
+![platform: windows(shields.io)](https://img.shields.io/badge/platform-Windows-brightgreen)
+
+
+![GitHub Repo stars](https://img.shields.io/github/stars/pisceskkk/OpenGL-MazeGame?style=social)
+![GitHub forks](https://img.shields.io/github/forks/pisceskkk/OpenGL-MazeGame?style=social)
 
 ## Install
 
@@ -75,3 +81,7 @@ Then there are `H` lines describing the whole maze, and each line has `W` charac
 ## Screenshot
 
 ![screenshot](./assets/screenshot1.png)
+
+## LICENSE
+
+[Apache 2.0](https://github.com/pisceskkk/OpenGL-MazeGame/blob/master/LICENSE)
