@@ -13,5 +13,5 @@ public:
         memcpy(name, filename, strlen(filename)+1);
     }
     void Load();
-    void Draw(vec3 position, vec2 scale);
+    void Draw(vec2 position, vec2 scale);
 };

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <ctime>
 #include <cmath>
+#include <string>
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h> 
 #endif
@@ -78,14 +79,16 @@ struct GameState{
     bool is_loaded=false;
     bool win=false;
     Logo loading_logo=Logo("./assets/loading.png"),win_logo=Logo("./assets/win.png");
-    Logo exit_log=Logo("./assets/button_exit.png"),exit_down_logo=Logo("./assets/button_exit_down.png");
-    Logo reload_log=Logo("./assets/button_reload.png"),reload_down_logo=Logo("./assets/button_reload_down.png");
+    Logo exit_logo=Logo("./assets/button_exit.png"),exit_down_logo=Logo("./assets/button_exit_down.png");
+    Logo reload_logo=Logo("./assets/button_reload.png"),reload_down_logo=Logo("./assets/button_reload_down.png");
+    Button exit_button=Button(&exit_logo, &exit_down_logo, vec2(screenW-10-6.5*screenW/100,10),vec2(6.5*screenW/100,4.8*screenH/100));
+    Button reload_button=Button(&reload_logo, &reload_down_logo, vec2(10,10), vec2(9.4*screenW/100,4.8*screenH/100));
     void load(){
         loading_logo.Load();
         win_logo.Load();
-        exit_log.Load();
+        exit_logo.Load();
         exit_down_logo.Load();
-        reload_log.Load();
+        reload_logo.Load();
         reload_down_logo.Load();
         is_loaded = true;
     }
@@ -365,6 +368,9 @@ void Reshape(int w, int h)
     gluLookAt(0.00, 0.00, 0.0,
         0.00, 0.00, -1.00,
         0.00, 1.00, 0.00);
+
+    state.exit_button.Update(vec2(screenW-10-6.5*screenW/100,10),vec2(6.5*screenW/100,4.8*screenH/100));
+    state.reload_button.Update(vec2(10,10), vec2(9.4*screenW/100,4.8*screenH/100));
 }
 
 static void RenderSence()
@@ -376,21 +382,23 @@ static void RenderSence()
     glMatrixMode(GL_PROJECTION);
     {
         glLoadIdentity();
-        glOrtho(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5);
+        gluOrtho2D(0, screenW, screenH, 0);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         // Loading
         if(state.elapsed_time < 5){
             keysProcessed.enabled = false;
-            state.loading_logo.Draw(kZeroVec3, vec2(3,1.2));
+            state.loading_logo.Draw(vec2(0,screenH/2-screenW/5), vec2(screenW,screenW/2.5));
         }
         else {
             keysProcessed.enabled = true;
         }
         if(state.win){
-            state.win_logo.Draw(kZeroVec3, vec2(3.6,1.4));
+            state.win_logo.Draw(vec2(screenW/4, screenH/4), vec2(screenW/2, screenH/2));
             keysProcessed.enabled = false;
         }
+        state.exit_button.Draw();
+        state.reload_button.Draw();
     }
 
     // Draw in space
@@ -426,6 +434,55 @@ static void RenderSence()
         glutSwapBuffers();
     } else {
         glFlush();
+    }
+}
+
+
+void mouse_hit(int mbutton, int mstate, int x, int y){
+    //鼠标操作基本结构
+    switch (mbutton)
+    {
+    case GLUT_LEFT_BUTTON:
+        if (mstate == GLUT_DOWN)
+        {
+            if(state.exit_button.In(x,y)){
+                state.exit_button.On();
+            }
+            if(state.reload_button.In(x,y)){
+                state.reload_button.On();
+            }
+        }
+        else if (mstate == GLUT_UP){
+            if(state.exit_button.In(x,y)){
+                state.exit_button.Off();
+                exit(0);
+            }
+            if(state.reload_button.In(x,y)){
+                state.reload_button.Off();
+                Init();
+            }
+        }
+        break;
+    case GLUT_RIGHT_BUTTON:
+    default:
+        break;
+    }
+}
+
+void mouse_move(int x, int y)
+{
+    glutSetWindowTitle((std::to_string(x) + " " + std::to_string(y)).c_str());
+    if(state.exit_button.In(x,y)){
+        state.exit_button.On();
+    }
+    else {
+        state.exit_button.Off();
+    }
+    if(state.reload_button.In(x,y)){
+        state.reload_button.On();
+    }
+    else {
+        state.reload_button.Off();
     }
 }
 
@@ -469,5 +526,7 @@ int main(int argc, char **argv)
     glutReshapeFunc(Reshape);
     glutDisplayFunc(RenderSence);
     glutTimerFunc(25, TimerFunc, 1);
+    glutMouseFunc(mouse_hit);
+    glutMotionFunc(mouse_move);
     glutMainLoop();
 }

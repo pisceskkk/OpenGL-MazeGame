@@ -41,8 +41,8 @@ void Map::Init(){
         for(int x=0; x < height; x++) {
             for (int y=0; y < width; y++) {
                 int code = encode(x, y);
-                if (models[code])
-                    free(models[code]);
+                //if (models[code])
+                    //free(models[code]);
             }
         }
         free(models);
